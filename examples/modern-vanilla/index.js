@@ -3,24 +3,15 @@ async function init() {
     const partialContainer = document.getElementById('partial');
 
     partialContainer.textContent = "Loading...";
+    
+    const channel = new MessageChannel();
     const model = await Vosk.createModel('model.tar.gz');
+    model.registerPort(channel.port1);
 
-    const sampleRate = 16000;
+    const sampleRate = 48000;
     
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            channelCount: 1,
-            sampleRate
-        },
-    });
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(mediaStream);
-    
-    const recognizer = new model.KaldiRecognizer(sampleRate, JSON.stringify(['[unk]', 'encen el llum', 'apaga el llum']));
-    
+    const recognizer = new model.KaldiRecognizer(sampleRate);
+
     recognizer.on("result", (message) => {
         const result = message.result;
         console.log(JSON.stringify(result, null, 2));
@@ -38,17 +29,24 @@ async function init() {
     
     partialContainer.textContent = "Ready";
     
-
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: false,
+        audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            channelCount: 1,
+            sampleRate
+        },
+    });
     
-    const recognizerNode = audioContext.createScriptProcessor(4096, 1, 1)
-    recognizerNode.onaudioprocess = (event) => {
-        try {
-            recognizer.acceptWaveform(event.inputBuffer)
-        } catch (error) {
-            console.error('acceptWaveform failed', error)
-        }
-    }
-    source.connect(recognizerNode);
+    const audioContext = new AudioContext();
+    await audioContext.audioWorklet.addModule('recognizer-processor.js')
+    const recognizerProcessor = new AudioWorkletNode(audioContext, 'recognizer-processor', { channelCount: 1, numberOfInputs: 1, numberOfOutputs: 1 });
+    recognizerProcessor.port.postMessage({action: 'init', recognizerId: recognizer.id}, [ channel.port2 ])
+    recognizerProcessor.connect(audioContext.destination);
+    
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    source.connect(recognizerProcessor);
 }
 
 window.onload = () => {

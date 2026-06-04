@@ -1,4 +1,4 @@
-FROM dockcross/web-wasm:20210901-4a98c0e
+FROM --platform=linux/amd64 dockcross/web-wasm:20210901-4a98c0e
 
 ENV PATH="/emsdk/upstream/bin:$PATH"
 
@@ -12,7 +12,7 @@ RUN apt-get update \
 
 WORKDIR /opt/kaldi
 RUN git clone -b vosk --single-branch https://github.com/alphacep/kaldi . && \
-    git checkout 6417ac1dece94783e80dfbac0148604685d27579
+    git checkout bc5baf14231660bd50b7d05788865b4ac6c34481
 ADD kaldi.patch /tmp
 RUN git apply -v /tmp/kaldi.patch
 

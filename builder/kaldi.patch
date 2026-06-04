@@ -8,7 +8,7 @@ index 69aebdb26..bd66c91eb 100644
  .DEFAULT_GOAL :=
 -all: $(SUBDIRS) matrix/test
 +all: $(SUBDIRS) #matrix/test
- 	-echo Done
+ 	@echo Done
  
  mklibdir:
 diff --git a/src/configure b/src/configure
